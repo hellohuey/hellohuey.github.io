@@ -88,37 +88,72 @@
         fill: #555;
         cursor: pointer;
       }
-      .mockup {
-        width: 260px;
-        height: 520px;
-        border-radius: 40px;
-        border: 6px solid #555;
-        background-color: #e3f6ff;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        transform: rotate(3deg);
-        animation: phoneSlideIn 1.2s ease forwards, floatMockup 4s ease-in-out 1.2s infinite;
-      }
-      .mockup h2 {
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: #000;
-        text-align: center;
-        margin-bottom: 20px;
-      }
-      .moods {
-        display: flex;
-        gap: 14px;
-      }
-      .mood {
-        width: 56px;
-        height: 56px;
-        border-radius: 50%;
-        background-size: cover;
-        background-position: center;
-      }
+:root{
+      --phone-border:#555;
+      --phone-bg:#e3f6ff;
+      --grid-gap-x:10px;
+      --grid-gap-y:6px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:'Nunito',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:#fefbf5;
+      display:flex;align-items:center;justify-content:center;
+      padding:24px;
+    }
+
+    /* PHONE MOCKUP */
+    .mockup {
+      width: 260px;
+      height: 520px;
+      border-radius: 40px;
+      border: 6px solid var(--phone-border);
+      background-color: var(--phone-bg);
+      display: flex;
+      /* IMPORTANT: don't center the 200% slider or you'll see half of each screen */
+      justify-content: flex-start;
+      align-items: stretch;
+      transform: rotate(3deg);
+      animation: phoneSlideIn 1.2s ease forwards, floatMockup 4s ease-in-out 1.2s infinite;
+      overflow:hidden; position:relative;
+      user-select:none; /* no click/drag UX */
+      pointer-events:auto;
+    }
+
+    /* A viewport that fills the phone and clips the slider */
+    .viewport{position:relative;width:100%;height:100%;overflow:hidden}
+
+    .phone-slider{
+      position:absolute;left:0;top:0; /* lock to left edge so Screen A fully shows */
+      display:flex;width:200%;height:100%;
+      transform:translateX(0%);
+      transition:transform 0.8s ease-in-out;
+      pointer-events:none; /* disable interactions entirely */
+    }
+    .phone-screen{
+      flex:0 0 50%; /* exactly one phone width each */
+      height:100%;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:22px 16px 40px;
+    }
+    .mockup h2 {font-size: 1.4rem;font-weight: 700;color: #000;text-align: center;margin-bottom: 20px;}
+    .moods { display: flex; gap: 14px; }
+    .mood { width: 56px; height: 56px; border-radius: 50%; background-size: cover; background-position: center; }
+
+    .trend-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--grid-gap-y) var(--grid-gap-x);width:100%;max-width:220px;justify-items:center}
+    .cell{display:flex;flex-direction:column;align-items:center}
+    .swatch{width:20px;height:20px;border-radius:5px}
+    .dow{font-size:.7rem;font-weight:800;margin-top:2px;width:20px;text-align:center}
+
+    @keyframes phoneSlideIn{from{opacity:0;transform:translateY(20px) rotate(3deg)}to{opacity:1;transform:translateY(0) rotate(3deg)}}
+    @keyframes floatMockup{0%{transform:translateY(0) rotate(3deg)}50%{transform:translateY(-6px) rotate(3deg)}100%{transform:translateY(0) rotate(3deg)}}
+
+    @media (prefers-reduced-motion: reduce){
+      .mockup{animation:none}
+      .phone-slider{transition:none}
+    }
       @keyframes slideReveal {
         0% { transform: translateX(-100%); }
         100% { transform: translateX(0); }
@@ -162,14 +197,53 @@
           </div>
           </div>
         </div>
-        <div class="mockup">
-          <h2>How do you feel<br>today?</h2>
-          <div class="moods">
-            <div class="mood" style="background-image:url('https://raw.githubusercontent.com/hellohuey/hellohuey.github.io/refs/heads/main/sad.png');"></div>
-            <div class="mood" style="background-image:url('https://raw.githubusercontent.com/hellohuey/hellohuey.github.io/refs/heads/main/neutral.png');"></div>
-            <div class="mood" style="background-image:url('https://raw.githubusercontent.com/hellohuey/hellohuey.github.io/refs/heads/main/happy.png');"></div>          </div>
+  <div class="mockup">
+    <div class="viewport">
+      <div class="phone-slider" id="slider">
+      <section class="phone-screen">
+        <h2>How do you feel<br>today?</h2>
+        <div class="moods">
+          <div class="mood" style="background-image:url('https://raw.githubusercontent.com/hellohuey/hellohuey.github.io/refs/heads/main/sad.png');"></div>
+          <div class="mood" style="background-image:url('https://raw.githubusercontent.com/hellohuey/hellohuey.github.io/refs/heads/main/neutral.png');"></div>
+          <div class="mood" style="background-image:url('https://raw.githubusercontent.com/hellohuey/hellohuey.github.io/refs/heads/main/happy.png');"></div>
         </div>
-      </div>
-    </section>
-  </body>
+      </section>
+      <section class="phone-screen">
+        <div class="trend-grid" id="trendGrid"></div>
+      </section>
+    </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      const grid = document.getElementById('trendGrid');
+      const days = ['Su','M','Tu','W','Th','F','Sa'];
+      const colors = ['#e74c3c','#f1c40f','#2ecc71'];
+      for (let i=0;i<28;i++){
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        const sw = document.createElement('div');
+        sw.className = 'swatch';
+        sw.style.backgroundColor = colors[i % colors.length];
+        const lb = document.createElement('div');
+        lb.className = 'dow';
+        lb.textContent = days[i % 7];
+        cell.appendChild(sw);cell.appendChild(lb);
+        grid.appendChild(cell);
+      }
+
+      const slider = document.getElementById('slider');
+      // Always start at Screen A (translateX(0%))
+      slider.style.transform = 'translateX(0%)';
+      // Auto-slide A <-> B every 5s with dwell
+      let onB = false;
+      setInterval(()=>{
+        onB = !onB;
+        // move exactly one screen (50%) to the left when showing B
+        slider.style.transform = onB ? 'translateX(-50%)' : 'translateX(0%)';
+      }, 5000);
+    });
+  </script>
+</body>
 </html>
